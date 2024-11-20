@@ -1,0 +1,16 @@
+#:kivy 2.3.0
+
+<MainScreen>:
+    AddItem
+
+<AddItem>:
+    orientation: 'horizontal'
+
+    TextInput:
+        id: todo_name
+        hint_text: 'Add task'
+        multiline: False
+
+    Button:
+        text: 'Add column'
+        on_press: root.on_add_item_button_click()
