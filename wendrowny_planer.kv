@@ -1,7 +1,17 @@
 #:kivy 2.3.0
 
 <MainScreen>:
-    AddItem
+    ItemList:
+        id: item_list
+        size_hint_y: 0.9
+    
+    AddItem:
+        id: add_item
+        size_hint_y: 0.1
+        pos_hint: {'x': 0, 'y': 0}
+
+<ItemList>:
+    orientation: 'vertical'        
 
 <AddItem>:
     orientation: 'horizontal'
@@ -12,5 +22,5 @@
         multiline: False
 
     Button:
-        text: 'Add column'
+        text: 'Add Item'
         on_press: root.on_add_item_button_click()
