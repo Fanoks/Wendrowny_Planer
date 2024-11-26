@@ -1,7 +1,7 @@
 [app]
 
 # (str) Title of your application
-title = Test
+title = Wędrowny Planer
 
 # (str) Package name
 package.name = wendrownyplaner

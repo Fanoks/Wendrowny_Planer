@@ -1,26 +1,64 @@
 #:kivy 2.3.0
 
 <MainScreen>:
-    ItemList:
-        id: item_list
-        size_hint_y: 0.9
-    
-    AddItem:
-        id: add_item
-        size_hint_y: 0.1
-        pos_hint: {'x': 0, 'y': 0}
+    FloatLayout:
+        ItemList:
+            id: item_list
+        
+        NavigationBar:
+            id: navigation_bar
 
-<ItemList>:
-    orientation: 'vertical'        
+        AddItem:
+            id: add_item       
 
 <AddItem>:
-    orientation: 'horizontal'
+    orientation: 'vertical'
+    size_hint: (1, 0.05)
+    pos_hint: {'x': 0, 'y': 0}
 
-    TextInput:
-        id: todo_name
-        hint_text: 'Add task'
-        multiline: False
+    BoxLayout:
+        orientation: 'horizontal'
 
-    Button:
-        text: 'Add Item'
-        on_press: root.on_add_item_button_click()
+        TextInput:
+            id: todo_name
+            hint_text: 'Add task'
+            size_hint: (0.8, 1)
+            multiline: False
+            on_text_validate: root.on_add_item_button_click()
+
+        Button:
+            text: 'Add Item'
+            size_hint: (0.2, 1)
+            on_press: root.on_add_item_button_click()
+
+<NavigationBar>:
+    size_hint_y: 0.1
+    pos_hint: {'x': 0, 'y': 0.90}
+    canvas:
+        Color:
+            rgba: 1, 1, 1, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
+<ItemList>:
+    size_hint: (1, 0.85)
+    pos_hint: {'x': 0, 'y': 0.05}
+    BoxLayout:
+        orientation: 'vertical'
+    
+        RecycleView:
+            id: recycle_view
+            viewclass: 'ItemLabel'
+            data: root.data
+
+            RecycleBoxLayout:
+                orientation: 'vertical'
+                default_size: None, dp(56)
+                default_size_hint: 1, None
+                size_hint_y: None
+                height: self.minimum_height
+
+<ItemLabel>:
+    size_hint_y: None
+    height: '40dp'
