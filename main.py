@@ -13,6 +13,7 @@ from kivy.uix.recycleview.views import RecycleDataViewBehavior
 from kivy.uix.widget import Widget
 from kivy.uix.button import Button
 from kivy.uix.textinput import TextInput
+from kivy.uix.checkbox import CheckBox
 from kivy.uix.label import Label
 
 Config.set('graphics', 'width', '378')
@@ -26,26 +27,27 @@ class NavigationBar(BoxLayout):
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
 
-class ItemLabel(RecycleDataViewBehavior, Label):
+class ItemBox(RecycleDataViewBehavior, BoxLayout):
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
-        self.selected = False
-    
-    def refresh_view_attrs(self, rv, index, data) -> None:
-        self.text = data['text']
-        self.color = (0, 1, 0, 1) if self.selected else (1, 0, 0, 1)
+        self.label = self.ids.item_name
+        self.ids.complite.bind(active = self.on_checkbox_activte)
+        self.ids.btn_delete.bind(on_press = self.destruction)
+   
+    def refresh_view_attrs(self, rv, index: int, data: dict) -> None:
+        self.label.text = data['text']
+        self.index = index
         return super().refresh_view_attrs(rv, index, data)
 
-    def on_touch_down(self, touch) -> bool:
-        if super().on_touch_down(touch):
-            return True
-
-        if self.collide_point(*touch.pos):
-            self.selected = not self.selected
-            self.parent.parent.refresh_from_data()
-            return True
-
-        return False
+    def on_checkbox_activte(self, checkbox: CheckBox, value: bool) -> None:
+        if value:
+            self.label.color = (0, 1, 0, 1)
+        else:
+            self.label.color = (1, 0, 0, 1)
+    
+    def destruction(self, button: Button) -> None:
+        self.parent.parent.parent.parent.remove_item(self.index)
+        self.parent.remove_widget(self)
 
 class ItemList(RecycleView):
     def __init__(self, **kwargs) -> None:
@@ -55,6 +57,11 @@ class ItemList(RecycleView):
     def add_item(self, item: str) -> None:
         self.data.append({'text': item})
         self.refresh_from_data()
+    
+    def remove_item(self, index: int) -> None:
+        if 0 <= index < len(self.data):
+            del self.data[index]
+            self.refresh_from_data()
 
 class AddItem(BoxLayout):
     def __init__(self, **kwargs) -> None:
