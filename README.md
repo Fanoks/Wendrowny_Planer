@@ -5,7 +5,7 @@ Wędrowny Planer is a simple task management application built using Kivy, a Pyt
 ## Features
 
 - ✅ Add tasks to your to-do list.
-- ✅ Select tasks to highlight them.
+- ✅ Delete tasks from the list.
 - 🎨 Simple and clean user interface.
 
 ## Requirements
@@ -31,8 +31,8 @@ Wędrowny Planer is a simple task management application built using Kivy, a Pyt
 ## Usage
 
 - Upon launching the application, you will see an input field where you can enter your tasks.
-- ype your task into the input field and click the "Add" button to add it to the list.
-- Click on a task to select or deselect it. Selected tasks will be highlighted.
+- Type your task into the input field and click the "Add" button to add it to the list.
+- You can delete a task by clicking the delete button next to it.
 
 ## Contributing
 
