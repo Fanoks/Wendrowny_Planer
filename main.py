@@ -1,20 +1,30 @@
 import kivy
+import kivymd
 kivy.require('2.3.0')
 
 from kivy.app import App
+from kivymd.app import MDApp
+from kivy.lang import Builder
 from kivy.config import Config
 from kivy.core.window import Window
 
-from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.floatlayout import FloatLayout
+from kivymd.uix.behaviors import CommonElevationBehavior
+from kivymd.uix.floatlayout import MDFloatLayout
+from kivymd.uix.screen import MDScreen
+from kivymd.uix.boxlayout import MDBoxLayout
 from kivy.uix.recycleview import RecycleView
 from kivy.uix.recycleview.views import RecycleDataViewBehavior
 
-from kivy.uix.widget import Widget
-from kivy.uix.button import Button
-from kivy.uix.textinput import TextInput
+from kivymd.icon_definitions import md_icons
+from kivymd.uix.widget import Widget
+from kivymd.uix.list import MDList, MDListItem, MDListItemLeadingIcon
+from kivymd.uix.dialog import MDDialog, MDDialogHeadlineText, MDDialogContentContainer, MDDialogButtonContainer
+from kivymd.uix.button import MDButton, MDButtonText
+from kivymd.uix.button import MDIconButton
+from kivymd.uix.button import MDFabButton
+from kivymd.uix.textfield import MDTextField, MDTextFieldHintText, MDTextFieldMaxLengthText
 from kivy.uix.checkbox import CheckBox
-from kivy.uix.label import Label
+from kivymd.uix.label import MDLabel
 
 Config.set('graphics', 'width', '378')
 Config.set('graphics', 'height', '672')
@@ -23,69 +33,66 @@ Window.size = (378, 672)
 Window.borderless = False
 Window.resizable = False
 
-class NavigationBar(BoxLayout):
+class DialogContent(MDBoxLayout):
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
 
-class ItemBox(RecycleDataViewBehavior, BoxLayout):
+class NavBar(CommonElevationBehavior, MDFloatLayout):
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
-        self.label = self.ids.item_name
-        self.ids.complite.bind(active = self.on_checkbox_activte)
-        self.ids.btn_delete.bind(on_press = self.destruction)
-   
-    def refresh_view_attrs(self, rv, index: int, data: dict) -> None:
-        self.label.text = data['text']
-        self.index = index
-        return super().refresh_view_attrs(rv, index, data)
 
-    def on_checkbox_activte(self, checkbox: CheckBox, value: bool) -> None:
-        if value:
-            self.label.color = (0, 1, 0, 1)
-        else:
-            self.label.color = (1, 0, 0, 1)
+class Wendrowny_PlanerApp(MDApp):
+    task_list_dialog = None
+
+    def change_color(self, instance) -> None:
+        if instance in self.root.ids.values():
+            current_id = list(self.root.ids.keys())[list(self.root.ids.values()).index(instance)]
+            for i in range(4):
+                if f'nav_icon{i + 1}' == current_id:
+                    self.root.ids[f'nav_icon{i + 1}'].text_color = 1, 1, 1, 1
+                else:
+                    self.root.ids[f'nav_icon{i + 1}'].text_color = 0, 0, 0, 1
+
+    def show_task_dialog(self) -> None:
+        if not self.task_list_dialog:
+            self.task = MDTextField(
+                MDTextFieldHintText(text = 'Add task'),
+                MDTextFieldMaxLengthText(max_text_length = 50),
+                size_hint_x = None,
+                width = '275dp',
+                )
+            self.task_list_dialog = MDDialog(
+                MDDialogHeadlineText(text = 'Create Task', halign = 'left'),
+                MDDialogContentContainer(
+                    self.task,
+                    orientation = 'vertical'
+                ),
+                MDDialogButtonContainer(
+                    Widget(),
+                    MDButton(MDButtonText(text = 'Cancle'), on_release = self.close_dialog),
+                    MDButton(MDButtonText(text = 'Add'), on_release = lambda x: self.add_task(self.task)),
+                    spacing = '10dp'
+                ),
+                size_hint = (0.85, 0.35)
+            )
+        self.task_list_dialog.open()
     
-    def destruction(self, button: Button) -> None:
-        self.parent.parent.parent.parent.remove_item(self.index)
-        self.parent.remove_widget(self)
-
-class ItemList(RecycleView):
-    def __init__(self, **kwargs) -> None:
-        super().__init__(**kwargs)
-        self.data: list = []
-
-    def add_item(self, item: str) -> None:
-        self.data.append({'text': item})
-        self.refresh_from_data()
+    def close_dialog(self, *args) -> None:
+        self.task_list_dialog.dismiss()
     
-    def remove_item(self, index: int) -> None:
-        if 0 <= index < len(self.data):
-            del self.data[index]
-            self.refresh_from_data()
+    def add_task(self, task) -> None:
+        print(task.text)
+        task.text = ''
 
-class AddItem(BoxLayout):
-    def __init__(self, **kwargs) -> None:
-        super().__init__(**kwargs)
-
-    def on_kv_post(self, base_widget) -> None:
-        self.item_list: ItemList = self.parent.parent.ids.item_list
-
-    def on_add_item_button_click(self) -> None:
-        task = self.ids.todo_name.text
-        if task:
-            self.item_list.add_item(task)
-            self.ids.todo_name.text = ''
-
-class MainScreen(FloatLayout):
-    def __init__(self, **kwargs) -> None:
-        super().__init__(**kwargs)
-
-class Wendrowny_PlanerApp(App):
-    def build(self) -> MainScreen:
-        return MainScreen()
+    def build(self):
+        self.theme_cls.theme_style = 'Dark'
+        self.theme_cls.primary_palette = 'Olive'
+        return Builder.load_file('./wendrowny_planer.kv')
 
 def main() -> None:
     Wendrowny_PlanerApp().run()
 
 if __name__ == '__main__':
     main()
+#! https://dev.to/ngonidzashe/how-to-create-a-simple-to-do-list-application-with-kivymd-d89
+#! https://kivymd.readthedocs.io/en/latest/components/dialog/#kivymd.uix.dialog.dialog.MDDialog

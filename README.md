@@ -10,8 +10,9 @@ Wędrowny Planer is a simple task management application built using Kivy, a Pyt
 
 ## Requirements
 
-- Python 3.x
+- Python 3.7+
 - Kivy 2.3.0 or higher
+- Kivymd 2.0.0 or higher
 
 ## Installation
 
@@ -22,7 +23,15 @@ Wędrowny Planer is a simple task management application built using Kivy, a Pyt
    pip install kivy==2.3.0
    ```
 
-3. Run the application:
+3. Install KivyMD and other dependies:
+
+    ```bash
+    pip install kivymd==2.0.0
+    pip install asynckivy
+    pip install materialyoucolor
+    ```
+
+4. Run the application:
 
     ```bash
     python main.py
