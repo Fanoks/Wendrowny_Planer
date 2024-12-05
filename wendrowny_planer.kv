@@ -29,7 +29,7 @@ MDFloatLayout:
             name: 'todo'
             MDFloatLayout:
                 ScrollView:
-                    pos_hint: {'x': 0, 'y': 0.1}
+                    pos_hint: {'center_x': 0.5, 'y': 0.1}
                     size_hint: 0.9, 0.8
                 
                     MDList:
@@ -47,10 +47,12 @@ MDFloatLayout:
             md_bg_color: self.theme_cls.backgroundColor
             name: 'settings'
             
-            MDLabel:
-                text: 'Settings'
-                pos_hint: {'center_y': 0.5}
-                halign: 'center'
+            MDButton:
+                pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+                on_release: app.exit_app()
+
+                MDButtonText:
+                    text: 'Exit'
 
     NavBar:
         size_hint: 1, 0.1
@@ -107,3 +109,29 @@ MDFloatLayout:
                 on_release:
                     scr.current = 'settings'
                     app.change_color(self)
+
+<ListItemWithCheckbox>:
+    adaptive_height: True
+    id: the_list_item
+    orientation: 'horizontal'
+
+    MDCheckbox:
+        id: check
+        pos_hint: {'x': 0.05, 'center_y': 0.5}
+        on_release: 
+            root.mark(check, task_label)
+        
+    MDLabel:
+        id: task_label
+        size_hint_x: 0.75
+        pos_hint: {'x': 0.15, 'center_y': 0.5}
+        max_width: '1dp'
+        multiline: True
+        text: ''
+        markup: True
+        
+    MDIconButton:
+        icon: 'trash-can-outline'
+        pos_hint: {'x': 0.87, 'center_y': 0.5}
+        on_release:
+            root.delete_items(the_list_item)

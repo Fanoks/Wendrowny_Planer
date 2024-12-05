@@ -12,18 +12,17 @@ from kivymd.uix.behaviors import CommonElevationBehavior
 from kivymd.uix.floatlayout import MDFloatLayout
 from kivymd.uix.screen import MDScreen
 from kivymd.uix.boxlayout import MDBoxLayout
-from kivy.uix.recycleview import RecycleView
-from kivy.uix.recycleview.views import RecycleDataViewBehavior
+from kivy.uix.scrollview import ScrollView
 
 from kivymd.icon_definitions import md_icons
 from kivymd.uix.widget import Widget
-from kivymd.uix.list import MDList, MDListItem, MDListItemLeadingIcon
+from kivymd.uix.list import MDList, MDListItem
 from kivymd.uix.dialog import MDDialog, MDDialogHeadlineText, MDDialogContentContainer, MDDialogButtonContainer
 from kivymd.uix.button import MDButton, MDButtonText
 from kivymd.uix.button import MDIconButton
 from kivymd.uix.button import MDFabButton
 from kivymd.uix.textfield import MDTextField, MDTextFieldHintText, MDTextFieldMaxLengthText
-from kivy.uix.checkbox import CheckBox
+from kivymd.uix.selectioncontrol import MDCheckbox
 from kivymd.uix.label import MDLabel
 
 Config.set('graphics', 'width', '378')
@@ -33,18 +32,32 @@ Window.size = (378, 672)
 Window.borderless = False
 Window.resizable = False
 
+class ListItemWithCheckbox(MDFloatLayout):
+    def __init__(self: 'ListItemWithCheckbox', text = None, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.ids.task_label.text = text
+    
+    def mark(self: 'ListItemWithCheckbox', check, the_list_item) -> None:
+        if check.active == True:
+            the_list_item.text = f'[s][i]{the_list_item.text}[/i][/s]'
+        else:
+            the_list_item.text = the_list_item.text[6:-8]
+            
+    def delete_items(self: 'ListItemWithCheckbox', the_list_item):
+        self.parent.remove_widget(the_list_item)
+
 class DialogContent(MDBoxLayout):
-    def __init__(self, **kwargs) -> None:
+    def __init__(self: 'DialogContent', **kwargs) -> None:
         super().__init__(**kwargs)
 
 class NavBar(CommonElevationBehavior, MDFloatLayout):
-    def __init__(self, **kwargs) -> None:
+    def __init__(self: 'NavBar', **kwargs) -> None:
         super().__init__(**kwargs)
 
 class Wendrowny_PlanerApp(MDApp):
     task_list_dialog = None
 
-    def change_color(self, instance) -> None:
+    def change_color(self: 'Wendrowny_PlanerApp', instance) -> None:
         if instance in self.root.ids.values():
             current_id = list(self.root.ids.keys())[list(self.root.ids.values()).index(instance)]
             for i in range(4):
@@ -53,7 +66,7 @@ class Wendrowny_PlanerApp(MDApp):
                 else:
                     self.root.ids[f'nav_icon{i + 1}'].text_color = 0, 0, 0, 1
 
-    def show_task_dialog(self) -> None:
+    def show_task_dialog(self: 'Wendrowny_PlanerApp') -> None:
         if not self.task_list_dialog:
             self.task = MDTextField(
                 MDTextFieldHintText(text = 'Add task'),
@@ -77,14 +90,19 @@ class Wendrowny_PlanerApp(MDApp):
             )
         self.task_list_dialog.open()
     
-    def close_dialog(self, *args) -> None:
+    def close_dialog(self: 'Wendrowny_PlanerApp', *args) -> None:
         self.task_list_dialog.dismiss()
     
-    def add_task(self, task) -> None:
-        print(task.text)
-        task.text = ''
+    def add_task(self: 'Wendrowny_PlanerApp', task: MDTextField) -> None:
+        if task.text:
+            if len(task.text) <= 50:
+                self.root.ids['container'].add_widget(ListItemWithCheckbox(text = f'[b]{task.text}[/b]'))
+                task.text = ''
 
-    def build(self):
+    def exit_app(self: 'Wendrowny_PlanerApp') -> None:
+        self.stop()
+
+    def build(self: 'Wendrowny_PlanerApp') -> None:
         self.theme_cls.theme_style = 'Dark'
         self.theme_cls.primary_palette = 'Olive'
         return Builder.load_file('./wendrowny_planer.kv')
@@ -95,4 +113,3 @@ def main() -> None:
 if __name__ == '__main__':
     main()
 #! https://dev.to/ngonidzashe/how-to-create-a-simple-to-do-list-application-with-kivymd-d89
-#! https://kivymd.readthedocs.io/en/latest/components/dialog/#kivymd.uix.dialog.dialog.MDDialog
