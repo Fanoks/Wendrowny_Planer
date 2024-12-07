@@ -2,6 +2,9 @@ import kivy
 import kivymd
 kivy.require('2.3.0')
 
+from database import Database
+from sys import platform
+
 from kivy.app import App
 from kivymd.app import MDApp
 from kivy.lang import Builder
@@ -25,26 +28,36 @@ from kivymd.uix.textfield import MDTextField, MDTextFieldHintText, MDTextFieldMa
 from kivymd.uix.selectioncontrol import MDCheckbox
 from kivymd.uix.label import MDLabel
 
-Config.set('graphics', 'width', '378')
-Config.set('graphics', 'height', '672')
+db: Database = Database()
 
-Window.size = (378, 672)
-Window.borderless = False
-Window.resizable = False
+if platform == 'android':
+    from android.permissions import Permission, request_permissions
+    request_permissions([Permission.READ_EXTERNAL_STORAGE, Permission.WRITE_EXTERNAL_STORAGE])
+else:
+    Config.set('graphics', 'width', '378')
+    Config.set('graphics', 'height', '672')
+
+    Window.size = (378, 672)
+    Window.borderless = False
+    Window.resizable = False
 
 class ListItemWithCheckbox(MDFloatLayout):
-    def __init__(self: 'ListItemWithCheckbox', text = None, **kwargs) -> None:
+    def __init__(self: 'ListItemWithCheckbox', pk: int = None, text: str = None, **kwargs) -> None:
         super().__init__(**kwargs)
         self.ids.task_label.text = text
+        self.pk: int = pk
     
     def mark(self: 'ListItemWithCheckbox', check, the_list_item) -> None:
         if check.active == True:
             the_list_item.text = f'[s][i]{the_list_item.text}[/i][/s]'
+            db.mark_task_as_complete(self.pk)
         else:
             the_list_item.text = the_list_item.text[6:-8]
+            db.mark_task_as_incomplete(self.pk)
             
     def delete_items(self: 'ListItemWithCheckbox', the_list_item):
         self.parent.remove_widget(the_list_item)
+        db.delete_task(the_list_item.pk)
 
 class DialogContent(MDBoxLayout):
     def __init__(self: 'DialogContent', **kwargs) -> None:
@@ -56,6 +69,25 @@ class NavBar(CommonElevationBehavior, MDFloatLayout):
 
 class Wendrowny_PlanerApp(MDApp):
     task_list_dialog = None
+
+    def on_start(self: 'Wendrowny_PlanerApp') -> None:
+        try:
+            uncompleted_tasks, completed_tasks = db.get_tasks()
+
+            if uncompleted_tasks != []:
+                for task in uncompleted_tasks:
+                    add_task: ListItemWithCheckbox = ListItemWithCheckbox(pk = task[0], text = f'[b]{task[1]}[/b]')
+                    self.root.ids.container.add_widget(add_task)
+            
+            if completed_tasks != []:
+                for task in completed_tasks:
+                    add_task: ListItemWithCheckbox = ListItemWithCheckbox(pk = task[0], text = f'[s][i][b]{task[1]}[/b][/s][/i]')
+                    add_task.ids.check.active = True
+                    self.root.ids.container.add_widget(add_task)
+        
+        except Exception as e:
+            print(e)
+            pass
 
     def change_color(self: 'Wendrowny_PlanerApp', instance) -> None:
         if instance in self.root.ids.values():
@@ -95,8 +127,10 @@ class Wendrowny_PlanerApp(MDApp):
     
     def add_task(self: 'Wendrowny_PlanerApp', task: MDTextField) -> None:
         if task.text:
+            created_task = db.create_task(task.text)
+
             if len(task.text) <= 50:
-                self.root.ids['container'].add_widget(ListItemWithCheckbox(text = f'[b]{task.text}[/b]'))
+                self.root.ids['container'].add_widget(ListItemWithCheckbox(pk = created_task[0], text = f'[b]{created_task[1]}[/b]'))
                 task.text = ''
 
     def exit_app(self: 'Wendrowny_PlanerApp') -> None:
@@ -112,4 +146,3 @@ def main() -> None:
 
 if __name__ == '__main__':
     main()
-#! https://dev.to/ngonidzashe/how-to-create-a-simple-to-do-list-application-with-kivymd-d89
