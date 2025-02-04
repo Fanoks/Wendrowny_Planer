@@ -10,19 +10,20 @@ class Database():
         self.cursor.execute('''CREATE TABLE IF NOT EXISTS tasks(
                             id INTEGER PRIMARY KEY AUTOINCREMENT,
                             task varchar(50) NOT NULL,
+                            due_date varchar(50),
                             completed BOOLEAN NOT NULL CHECK (completed IN (0, 1)))''')
         self.conn.commit()
     
-    def create_task(self: 'Database', task: str) -> list[any]:
-        self.cursor.execute('INSERT INTO tasks(task, completed) VALUES(?, ?)', (task, 0))
+    def create_task(self: 'Database', task: str, due_date: str = None) -> list[any]:
+        self.cursor.execute('INSERT INTO tasks(task, due_date, completed) VALUES(?, ?, 0)', (task, due_date,))
         self.conn.commit()
 
-        created_task: list[any] = self.cursor.execute('SELECT id, task FROM tasks WHERE task = ? and completed = 0', (task,)).fetchall()
+        created_task: list[any] = self.cursor.execute('SELECT id, task, due_date FROM tasks WHERE task = ? and completed = 0', (task,)).fetchall()
         return created_task[-1]
 
     def get_tasks(self: 'Database') -> tuple[list[any], list[any]]:
-        uncomplite_tasks: list[any] = self.cursor.execute('SELECT id, task FROM tasks WHERE completed = 0').fetchall()
-        completed_tasks: list[any] = self.cursor.execute('SELECT id, task FROM tasks WHERE completed = 1').fetchall()
+        uncomplite_tasks: list[any] = self.cursor.execute('SELECT id, task, due_date, completed FROM tasks WHERE completed = 0').fetchall()
+        completed_tasks: list[any] = self.cursor.execute('SELECT id, task, due_date, completed FROM tasks WHERE completed = 1').fetchall()
         return uncomplite_tasks, completed_tasks
 
     def mark_task_as_complete(self: 'Database', taskid: int) -> None:

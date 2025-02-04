@@ -4,8 +4,8 @@ kivy.require('2.3.0')
 
 from database import Database
 from sys import platform
+from datetime import datetime
 
-from kivy.app import App
 from kivymd.app import MDApp
 from kivy.lang import Builder
 from kivy.config import Config
@@ -13,12 +13,15 @@ from kivy.core.window import Window
 
 from kivymd.uix.behaviors import CommonElevationBehavior
 from kivymd.uix.floatlayout import MDFloatLayout
+from kivymd.uix.gridlayout import MDGridLayout
 from kivymd.uix.screen import MDScreen
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivy.uix.scrollview import ScrollView
+from kivy.metrics import dp, sp
 
 from kivymd.icon_definitions import md_icons
 from kivymd.uix.widget import Widget
+from kivymd.uix.pickers import MDModalDatePicker
 from kivymd.uix.list import MDList, MDListItem
 from kivymd.uix.dialog import MDDialog, MDDialogHeadlineText, MDDialogContentContainer, MDDialogButtonContainer
 from kivymd.uix.button import MDButton, MDButtonText
@@ -31,7 +34,7 @@ from kivymd.uix.label import MDLabel
 db: Database = Database()
 
 if platform == 'android':
-    from android.permissions import Permission, request_permissions
+    from android.permissions import Permission, request_permissions # type: ignore
     request_permissions([Permission.READ_EXTERNAL_STORAGE, Permission.WRITE_EXTERNAL_STORAGE])
 else:
     Config.set('graphics', 'width', '378')
@@ -41,31 +44,79 @@ else:
     Window.borderless = False
     Window.resizable = False
 
+#todo Dodać tekst pomocniczy aby wyświetlać date
 class ListItemWithCheckbox(MDFloatLayout):
-    def __init__(self: 'ListItemWithCheckbox', pk: int = None, text: str = None, **kwargs) -> None:
+    def __init__(self: 'ListItemWithCheckbox', index: int = None, text: str = None, **kwargs) -> None:
         super().__init__(**kwargs)
         self.ids.task_label.text = text
-        self.pk: int = pk
+        self.index: int = index
     
-    def mark(self: 'ListItemWithCheckbox', check, the_list_item) -> None:
-        if check.active == True:
+    def mark(self: 'ListItemWithCheckbox', check: MDCheckbox, the_list_item: MDLabel) -> None:
+        if check.active:
             the_list_item.text = f'[s][i]{the_list_item.text}[/i][/s]'
-            db.mark_task_as_complete(self.pk)
+            db.mark_task_as_complete(self.index)
         else:
             the_list_item.text = the_list_item.text[6:-8]
-            db.mark_task_as_incomplete(self.pk)
+            db.mark_task_as_incomplete(self.index)
             
     def delete_items(self: 'ListItemWithCheckbox', the_list_item):
         self.parent.remove_widget(the_list_item)
-        db.delete_task(the_list_item.pk)
-
-class DialogContent(MDBoxLayout):
-    def __init__(self: 'DialogContent', **kwargs) -> None:
-        super().__init__(**kwargs)
+        db.delete_task(the_list_item.index)
 
 class NavBar(CommonElevationBehavior, MDFloatLayout):
     def __init__(self: 'NavBar', **kwargs) -> None:
         super().__init__(**kwargs)
+        self.spacing = '10dp'
+        self.size_hint
+
+class DialogContent(MDBoxLayout):
+    def __init__(self: 'DialogContent', app: MDApp, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.app: MDApp = app
+        self.orientation = 'vertical'
+        self.spacing = '10dp'
+        self.height = '105dp'
+        self.size_hint = (1, None)
+        self.task_text = MDTextField(
+            MDTextFieldHintText(
+                text = "Add Task...",
+            ),
+            MDTextFieldMaxLengthText(
+                max_text_length = 50,
+            ),
+            id = 'task_text',
+            pos_hint = {'center_y': 0.4},
+            on_text_validate = self.on_task_entered
+        )
+        self.date_text = MDLabel(id = 'date_text')
+        self.add_widget(
+            MDGridLayout(
+                self.task_text,
+                MDIconButton(
+                    icon = 'calendar-blank',
+                    pos_hint = {'center_y': 0.7},
+                    on_press = self.show_date_picker,
+                    padding = '10dp'
+                ),
+                rows = 1,
+                cols = 2
+            )
+        )
+        self.add_widget(self.date_text)
+        self.date_text.text = str(datetime.now().strftime('%A %d %B %Y'))
+    
+    def on_task_entered(self: 'DialogContent', *args) -> None:
+        self.app.add_task(self.task_text, self.date_text)
+        self.task_text.text = ''
+
+    def show_date_picker(self: 'DialogContent') -> None:
+        date_dialog: MDModalDatePicker = MDModalDatePicker
+        date_dialog.bind(on_save = self.on_save)
+        date_dialog.open()
+    
+    def on_save(self: 'DialogContent', instance, value, date_range) -> None:
+        date = value.strftime('%A %d %B %Y')
+        self.ids.date_text.text = str(date)
 
 class Wendrowny_PlanerApp(MDApp):
     task_list_dialog = None
@@ -76,18 +127,17 @@ class Wendrowny_PlanerApp(MDApp):
 
             if uncompleted_tasks != []:
                 for task in uncompleted_tasks:
-                    add_task: ListItemWithCheckbox = ListItemWithCheckbox(pk = task[0], text = f'[b]{task[1]}[/b]')
+                    add_task: ListItemWithCheckbox = ListItemWithCheckbox(index = task[0], text = f'[b]{task[1]}[/b]')
                     self.root.ids.container.add_widget(add_task)
             
             if completed_tasks != []:
                 for task in completed_tasks:
-                    add_task: ListItemWithCheckbox = ListItemWithCheckbox(pk = task[0], text = f'[s][i][b]{task[1]}[/b][/s][/i]')
+                    add_task: ListItemWithCheckbox = ListItemWithCheckbox(index = task[0], text = f'[s][i][b]{task[1]}[/b][/s][/i]')
                     add_task.ids.check.active = True
                     self.root.ids.container.add_widget(add_task)
-        
+        #todo patrz wyżej
         except Exception as e:
             print(e)
-            pass
 
     def change_color(self: 'Wendrowny_PlanerApp', instance) -> None:
         if instance in self.root.ids.values():
@@ -99,23 +149,18 @@ class Wendrowny_PlanerApp(MDApp):
                     self.root.ids[f'nav_icon{i + 1}'].text_color = 0, 0, 0, 1
 
     def show_task_dialog(self: 'Wendrowny_PlanerApp') -> None:
+        def handle_add_task(instance, task_text: MDTextField, date_text: MDLabel) -> None:
+            self.add_task(task_text, date_text)
+        
         if not self.task_list_dialog:
-            self.task = MDTextField(
-                MDTextFieldHintText(text = 'Add task'),
-                MDTextFieldMaxLengthText(max_text_length = 50),
-                size_hint_x = None,
-                width = '275dp',
-                )
+            _DialogContent = DialogContent(app = self)
             self.task_list_dialog = MDDialog(
                 MDDialogHeadlineText(text = 'Create Task', halign = 'left'),
-                MDDialogContentContainer(
-                    self.task,
-                    orientation = 'vertical'
-                ),
+                MDDialogContentContainer(_DialogContent),
                 MDDialogButtonContainer(
                     Widget(),
                     MDButton(MDButtonText(text = 'Cancle'), on_release = self.close_dialog),
-                    MDButton(MDButtonText(text = 'Add'), on_release = lambda x: self.add_task(self.task)),
+                    MDButton(MDButtonText(text = 'Add'), on_release = lambda instance: handle_add_task(instance, _DialogContent.__getattribute__("task_text"), _DialogContent.__getattribute__("date_text"))),
                     spacing = '10dp'
                 ),
                 size_hint = (0.85, 0.35)
@@ -125,12 +170,12 @@ class Wendrowny_PlanerApp(MDApp):
     def close_dialog(self: 'Wendrowny_PlanerApp', *args) -> None:
         self.task_list_dialog.dismiss()
     
-    def add_task(self: 'Wendrowny_PlanerApp', task: MDTextField) -> None:
+    def add_task(self: 'Wendrowny_PlanerApp', task: MDTextField, task_date: MDLabel) -> None:
         if task.text:
-            created_task = db.create_task(task.text)
+            created_task = db.create_task(task.text, task_date.text)
 
             if len(task.text) <= 50:
-                self.root.ids['container'].add_widget(ListItemWithCheckbox(pk = created_task[0], text = f'[b]{created_task[1]}[/b]'))
+                self.root.ids['container'].add_widget(ListItemWithCheckbox(index = created_task[0], text = f'[b]{created_task[1]}[/b]'))
                 task.text = ''
 
     def exit_app(self: 'Wendrowny_PlanerApp') -> None:
