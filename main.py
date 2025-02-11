@@ -31,7 +31,7 @@ from kivymd.uix.textfield import MDTextField, MDTextFieldHintText, MDTextFieldMa
 from kivymd.uix.selectioncontrol import MDCheckbox
 from kivymd.uix.label import MDLabel
 
-db: Database = Database()
+DATABASE: Database = Database()
 
 if platform == 'android':
     from android.permissions import Permission, request_permissions # type: ignore
@@ -44,24 +44,31 @@ else:
     Window.borderless = False
     Window.resizable = False
 
-#todo Dodać tekst pomocniczy aby wyświetlać date
 class ListItemWithCheckbox(MDFloatLayout):
-    def __init__(self: 'ListItemWithCheckbox', index: int = None, text: str = None, **kwargs) -> None:
+    def __init__(self: 'ListItemWithCheckbox', index: int = None, text: str = None, date_text: str = None, **kwargs) -> None:
         super().__init__(**kwargs)
-        self.ids.task_label.text = text
+        self.checkbox: MDCheckbox = self.ids.check
+        self.task_label: MDLabel = self.ids.task_label
+        self.task_label.text = text
+        self.ids.task_date_label.text = date_text
         self.index: int = index
     
-    def mark(self: 'ListItemWithCheckbox', check: MDCheckbox, the_list_item: MDLabel) -> None:
-        if check.active:
-            the_list_item.text = f'[s][i]{the_list_item.text}[/i][/s]'
-            db.mark_task_as_complete(self.index)
+    #! napraw to zjebie / juz jest lepiej ale dalej nie wiem co się zjebało / To nie problem z tą metodą / †
+    #! Tu się dzieje jakaś jebana anomalia, według logiki wszystko jest w porządku, ale checkbox z jakigegoś powodu się zaznacza ponownie
+    def mark(self: 'ListItemWithCheckbox') -> None:
+        if self.checkbox.active:
+            if self.task_label.text[0:6] != '[s][i]':
+                self.task_label.text = f'[s][i]{self.task_label.text}[/i][/s]'
+            DATABASE.mark_task_as_complete(self.index)
         else:
-            the_list_item.text = the_list_item.text[6:-8]
-            db.mark_task_as_incomplete(self.index)
+            if self.task_label.text[0:6] == '[s][i]':
+                self.task_label.text = self.task_label.text[6:-8]
+            DATABASE.mark_task_as_incomplete(self.index)
+        print(self.checkbox.state)
             
-    def delete_items(self: 'ListItemWithCheckbox', the_list_item):
-        self.parent.remove_widget(the_list_item)
-        db.delete_task(the_list_item.index)
+    def delete_items(self: 'ListItemWithCheckbox'):
+        self.parent.remove_widget(self)
+        DATABASE.delete_task(self.index)
 
 class NavBar(CommonElevationBehavior, MDFloatLayout):
     def __init__(self: 'NavBar', **kwargs) -> None:
@@ -78,12 +85,8 @@ class DialogContent(MDBoxLayout):
         self.height = '105dp'
         self.size_hint = (1, None)
         self.task_text = MDTextField(
-            MDTextFieldHintText(
-                text = "Add Task...",
-            ),
-            MDTextFieldMaxLengthText(
-                max_text_length = 50,
-            ),
+            MDTextFieldHintText(text = "Add Task..."),
+            MDTextFieldMaxLengthText(max_text_length = 50),
             id = 'task_text',
             pos_hint = {'center_y': 0.4},
             on_text_validate = self.on_task_entered
@@ -122,20 +125,24 @@ class Wendrowny_PlanerApp(MDApp):
     task_list_dialog = None
 
     def on_start(self: 'Wendrowny_PlanerApp') -> None:
+        def add_task(task: list[str], complite: bool = False) -> None:
+            add_task_var: ListItemWithCheckbox = ListItemWithCheckbox(task[0], f'[b]{task[1]}[/b]', task[2])
+            if complite:
+                add_task_var.checkbox.active = True
+                add_task_var.mark()
+            self.root.ids.container.add_widget(add_task_var)
+
         try:
-            uncompleted_tasks, completed_tasks = db.get_tasks()
+            uncompleted_tasks, completed_tasks = DATABASE.get_tasks()
 
             if uncompleted_tasks != []:
                 for task in uncompleted_tasks:
-                    add_task: ListItemWithCheckbox = ListItemWithCheckbox(index = task[0], text = f'[b]{task[1]}[/b]')
-                    self.root.ids.container.add_widget(add_task)
+                    add_task(task)
             
             if completed_tasks != []:
                 for task in completed_tasks:
-                    add_task: ListItemWithCheckbox = ListItemWithCheckbox(index = task[0], text = f'[s][i][b]{task[1]}[/b][/s][/i]')
-                    add_task.ids.check.active = True
-                    self.root.ids.container.add_widget(add_task)
-        #todo patrz wyżej
+                    add_task(task, True)
+
         except Exception as e:
             print(e)
 
@@ -172,10 +179,10 @@ class Wendrowny_PlanerApp(MDApp):
     
     def add_task(self: 'Wendrowny_PlanerApp', task: MDTextField, task_date: MDLabel) -> None:
         if task.text:
-            created_task = db.create_task(task.text, task_date.text)
+            created_task = DATABASE.create_task(task.text, task_date.text)
 
             if len(task.text) <= 50:
-                self.root.ids['container'].add_widget(ListItemWithCheckbox(index = created_task[0], text = f'[b]{created_task[1]}[/b]'))
+                self.root.ids['container'].add_widget(ListItemWithCheckbox(created_task[0], f'[b]{created_task[1]}[/b]', task_date.text))
                 task.text = ''
 
     def exit_app(self: 'Wendrowny_PlanerApp') -> None:

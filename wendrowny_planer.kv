@@ -112,26 +112,35 @@ MDFloatLayout:
 
 <ListItemWithCheckbox>:
     adaptive_height: True
-    id: the_list_item
+    id: list_item
     orientation: 'horizontal'
 
     MDCheckbox:
         id: check
         pos_hint: {'x': 0.05, 'center_y': 0.5}
-        on_release: 
-            root.mark(check, task_label)
-        
-    MDLabel:
-        id: task_label
-        size_hint_x: 0.75
+        on_release:
+            root.mark()
+    
+    MDBoxLayout:
+        orientation: 'vertical'
         pos_hint: {'x': 0.15, 'center_y': 0.5}
-        max_width: '1dp'
-        multiline: True
-        text: ''
-        markup: True
+        size_hint: 0.75, 0.5
+
+        MDLabel:
+            id: task_label
+            size_hint_y: 0.75
+            max_width: '1dp'
+            multiline: True
+            text: ''
+            markup: True
         
+        MDLabel:
+            id: task_date_label
+            size_hint_y: 0.25
+            max_width: '1dp'
+    
     MDIconButton:
         icon: 'trash-can-outline'
         pos_hint: {'x': 0.87, 'center_y': 0.5}
         on_release:
-            root.delete_items(the_list_item)
+            root.delete_items()
