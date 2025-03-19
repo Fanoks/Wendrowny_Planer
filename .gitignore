@@ -1,6 +1,7 @@
 .vscode
 .venv
 .python-version
+__pycache__
 todo.db
 database.cpython-310.pyc
 buildozer.spec

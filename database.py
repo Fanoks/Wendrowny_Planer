@@ -41,5 +41,9 @@ class Database():
     def close_db_connection(self: 'Database') -> None:
         self.conn.close()
 
-if __name__ == '__main__':
+def main() -> None:
+    print('RUN `main.py`!!!')
     exit()
+
+if __name__ == '__main__':
+    main()
