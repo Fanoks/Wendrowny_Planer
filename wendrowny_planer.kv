@@ -4,30 +4,76 @@
 MDFloatLayout:
     ScreenManager:
         id: scr
-        #transition: NoTransition()
+        transition: NoTransition()
 
         MDScreen:
-            md_bg_color: self.theme_cls.backgroundColor
             name: 'home'
+            md_bg_color: self.theme_cls.backgroundColor
             
-            MDLabel:
-                text: 'Home'
-                pos_hint: {'center_y': 0.5}
-                halign: 'center'
+            MDBoxLayout:
+                pos_hint: {'y': 0.2}
+                width: self.parent.width
+                height: self.parent.height
+                orientation: 'vertical'
+                padding: '20dp'
+                spacing: '20dp'
+
+                MDLabel:
+                    text: 'Welcome to Wędrowny Planer'
+                    halign: 'center'
+                    font_style: 'Display'
+                    role: 'small'
+                
+                MDCard:
+                    orientation: 'vertical'
+                    padding: '15dp'
+                    size_hint: 1, None
+                    height: '100dp'
+
+                    MDLabel:
+                        id: task_stats
+                        text: 'Loading tasks statistics...'
+                        halign: 'center'
         
         MDScreen:
             md_bg_color: self.theme_cls.backgroundColor
             name: 'calender'
             
-            MDLabel:
-                text: 'Calender'
-                pos_hint: {'center_y': 0.5}
-                halign: 'center'
+            MDBoxLayout:
+                orientation: 'vertical'
+                padding: '10dp'
+                size_hint: 1, 1
+            
+                MDLabel:
+                    text: 'Calender'
+                    halign: 'center'
+                    size_hint_y: None
+                    height: '50dp'
+                
+                ScrollView:
+                    do_scroll_x: True
+                    do_scroll_y: True
+                    size_hint: 1, 1
+            
+                    MDBoxLayout:
+                        id: calendar_container
+                        orientation: 'vertical'
+                        size_hint: 0.8, None
+                        height: self.minimum_height
+                        padding: '5dp'
         
         MDScreen:
             md_bg_color: self.theme_cls.backgroundColor
             name: 'todo'
+
             MDFloatLayout:
+                MDTextField:
+                    id: search_field
+                    pos_hint: {'center_x': 0.5, 'y': 0.9}
+                    size_hint: 0.9, 0.05
+                    hint_text: 'Search tasks...'
+                    on_text: app.search_task(self.text)
+
                 ScrollView:
                     pos_hint: {'center_x': 0.5, 'y': 0.1}
                     size_hint: 0.9, 0.8
@@ -47,12 +93,37 @@ MDFloatLayout:
             md_bg_color: self.theme_cls.backgroundColor
             name: 'settings'
             
-            MDButton:
-                pos_hint: {'center_x': 0.5, 'center_y': 0.5}
-                on_release: app.exit_app()
+            MDBoxLayout:
+                orientation: 'vertical'
+                spacing: '20dp'
+                padding: '20dp'
+                pos_hint: {'center_x': 0.7, 'center_y': 0.7}
+                size_hint: 0.9, None
+                height: self.minimum_height
 
-                MDButtonText:
-                    text: 'Exit'
+                MDButton:
+                    on_release: app.toggle_theme()
+                    size_hint: 1, None
+                    height: '48dp'
+
+                    MDButtonText:
+                        text: 'Toggle Theme (Dark/Light)'
+                    
+                MDButton:
+                    on_release: app.clear_tasks()
+                    size_hint: 1, None
+                    height: '48dp'
+
+                    MDButtonText:
+                        text: 'Clear All Tasks'
+
+                MDButton:
+                    on_release: app.exit_app()
+                    size_hint: 1, None
+                    height: '48dp'
+
+                    MDButtonText:
+                        text: 'Exit App'
 
     NavBar:
         size_hint: 1, 0.1

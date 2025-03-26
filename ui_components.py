@@ -19,18 +19,34 @@ from dateformat import date_format
 DATABASE: Database = Database()
 
 class ListItemWithCheckbox(MDFloatLayout):
-    def __init__(self: 'ListItemWithCheckbox', index: int = None, text: str = None, date_text: str = None, **kwargs) -> None:
+    """
+    A task list item with a checkbox for marking completion status.
+    
+    This widget displays a task with its description, due date, and provides 
+    functionality to mark tasks as completed or delete them.
+    
+    Attributes:
+        checkbox (MDCheckbox): Reference to the checkbox widget
+        task_label (MDLabel): Reference to the label containing task text
+        index (int): Database ID of the associated task
+    """
+    def __init__(self, index: int = None, text: str = None, date_text: str = None, **kwargs) -> None:
         super().__init__(**kwargs)
         self.checkbox: MDCheckbox = self.ids.check
         self.task_label: MDLabel = self.ids.task_label
         self.task_label.text = text
         self.ids.task_date_label.text = date_text
         self.index: int = index
-    
-    #! napraw to zjebie / juz jest lepiej ale dalej nie wiem co się zjebało / To nie problem z tą metodą / †
-    #! Tu się dzieje jakaś jebana anomalia, według logiki wszystko jest w porządku, ale checkbox z jakigegoś powodu się zaznacza ponownie
-    def mark(self: 'ListItemWithCheckbox') -> None:
-        print(self.checkbox.active)
+
+    def mark(self, *args) -> None:
+        """
+        Toggle the completion status of a task.
+        
+        This method updates both the visual appearance of the task and its
+        completion status in the database when the checkbox is toggled.
+        """
+        self.checkbox.unbind(active = self.mark)
+
         if self.checkbox.active:
             if self.task_label.text[0:6] != '[s][i]':
                 self.task_label.text = f'[s][i]{self.task_label.text}[/i][/s]'
@@ -39,19 +55,53 @@ class ListItemWithCheckbox(MDFloatLayout):
             if self.task_label.text[0:6] == '[s][i]':
                 self.task_label.text = self.task_label.text[6:-8]
             DATABASE.mark_task_as_incomplete(self.index)
-            
-    def delete_items(self: 'ListItemWithCheckbox'):
-        self.parent.remove_widget(self)
-        DATABASE.delete_task(self.index)
+        
+        self.checkbox.bind(active = self.mark)
+
+        from kivymd.app import MDApp
+        app: MDApp = MDApp.get_running_app()
+        if hasattr(app, 'update_task_statistics'):
+            app.update_task_statistics()
+        self.update_task_statistics()
+    
+    def delete_items(self) -> None:
+        """
+        Delete this task from both the UI and database.
+        
+        Removes the task widget from its parent and deletes the corresponding
+        record from the database.
+        """
+        try:
+            self.parent.remove_widget(self)
+            DATABASE.delete_task(self.index)
+        except Exception as e:
+            print(f'Error deleting task: {e}')
 
 class NavBar(CommonElevationBehavior, MDFloatLayout):
-    def __init__(self: 'NavBar', **kwargs) -> None:
+    """
+    Navigation bar for the application.
+    
+    Provides a bottom navigation bar with icons for switching between different
+    screens of the application.
+    """
+    def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
         self.spacing = '10dp'
-        self.size_hint
+        self.size_hint = (1, None)
+        self.height = '80dp'
 
 class DialogContent(MDBoxLayout):
-    def __init__(self: 'DialogContent', app: MDApp, **kwargs) -> None:
+    """
+    Content for the task creation dialog.
+    
+    Provides UI elements for entering a new task description and selecting a due date.
+    
+    Attributes:
+        app (MDApp): Reference to the main application
+        task_text (MDTextField): Text field for task description
+        date_text (MDLabel): Label showing selected due date
+    """
+    def __init__(self, app: MDApp, **kwargs) -> None:
         super().__init__(**kwargs)
         self.app: MDApp = app
         self.orientation = 'vertical'
@@ -80,28 +130,48 @@ class DialogContent(MDBoxLayout):
             )
         )
         self.add_widget(self.date_text)
-        self.date_text.text = str(datetime.now().strftime('%A %d %B %Y'))
+        self.date_text.text = str(datetime.now().strftime('%A, %d %B %Y'))
     
-    def on_task_entered(self: 'DialogContent', *args) -> None:
+    def on_task_entered(self, *args) -> None:
+        """
+        Handle task submission when Enter key is pressed in the text field.
+        
+        Creates a new task with the entered description and selected date.
+        """
         self.app.add_task(self.task_text, self.date_text)
         self.task_text.text = ''
 
-    def show_date_picker(self: 'DialogContent', *args) -> None:
+    def show_date_picker(self, *args) -> None:
+        """
+        Display a date picker dialog for selecting the task due date.
+        """
         date_dialog: MDModalDatePicker = MDModalDatePicker()
         date_dialog.bind(on_ok = self.on_ok, on_cancel = self.on_dismiss)
         date_dialog.open()
     
-    def on_dismiss(self: 'DialogContent', instance_date_picker: MDModalDatePicker) -> None:
+    def on_dismiss(self, instance_date_picker: MDModalDatePicker) -> None:
+        """
+        Handle the dismissal of the date picker dialog.
+        """
         instance_date_picker.dismiss()
     
-    def on_ok(self: 'DialogContent', instance_date_picker: MDModalDatePicker) -> None:
-        date_year: str = str(instance_date_picker.get_date()[0])
-        print(date_year[:4])
-        date: str = instance_date_picker.set_text_full_date()
-        date = date_format(date)
-        print(date)
+    def on_ok(self, instance_date_picker: MDModalDatePicker) -> None:
+        """
+        Process the selected date when user confirms in the date picker.
+        
+        Formats the selected date and updates the date label in the dialog.
+        """
+        try:
+            date_obj: list[int] = instance_date_picker.get_date()
+            date_year: str = str(date_obj[0])
+            date: str = instance_date_picker.set_text_full_date()
+            date = date_format(date)
+            self.date_text.text = str(date + ' ' + date_year[0:4])
+        except Exception as e:
+            print(f'Error setting date: {e}')
+        
         instance_date_picker.dismiss()
-        self.date_text.text = str(date + ' ' + date_year[0:4])
+
 
 def main() -> None:
     print('RUN `main.py`!!!')
